@@ -441,7 +441,8 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script>
     const SHEET_ID = '1Y72gResgcAmd0aIcL5FyOWmimIWD0wNi1V-4DbZ4sBk';
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    const SHEET_GID = '1999368814'; // 🌸 2026 tab
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`;
 
     const STATUS_CONFIG = {
       '満開':    { color: '#D81B60', size: 14, emoji: '\u{1F338}', glow: 'rgba(216,27,96,0.4)' },
