@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --pink-deep: #D81B60;
@@ -25,7 +25,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: #f8f8f8;
       overflow: hidden;
       height: 100vh;
@@ -33,137 +33,151 @@
 
     /* ── Header ── */
     #header {
-      background: linear-gradient(135deg, var(--pink-pale) 0%, var(--pink-bg) 50%, #fff 100%);
-      padding: 14px 24px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      padding: 0 24px;
       display: flex;
       align-items: center;
-      gap: 16px;
-      box-shadow: var(--shadow);
+      gap: 20px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
       z-index: 1000;
       position: relative;
-      backdrop-filter: blur(10px);
+      height: 56px;
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       flex-shrink: 0;
     }
 
     .logo-icon {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--pink-deep), var(--pink-light));
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      box-shadow: 0 2px 8px rgba(216,27,96,0.3);
+      font-size: 22px;
+      line-height: 1;
     }
 
     .logo h1 {
-      font-size: 18px;
+      font-family: 'Zen Maru Gothic', 'Inter', sans-serif;
+      font-size: 17px;
       font-weight: 700;
-      color: #333;
-      letter-spacing: -0.5px;
+      color: #1a1a1a;
+      letter-spacing: -0.3px;
     }
 
-    .logo h1 span { color: var(--pink-deep); }
+    .logo h1 span {
+      background: linear-gradient(135deg, var(--pink-deep), #FF6090);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(0,0,0,0.08);
+      flex-shrink: 0;
+    }
 
     /* ── Stats bar ── */
     #stats {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       font-size: 12px;
       flex-shrink: 0;
+      align-items: center;
     }
 
     .stat-badge {
-      padding: 5px 12px;
-      border-radius: 20px;
+      padding: 4px 10px;
+      border-radius: 6px;
       font-weight: 600;
-      letter-spacing: 0.3px;
+      font-size: 11px;
+      letter-spacing: 0.2px;
       display: flex;
       align-items: center;
       gap: 4px;
-      transition: transform 0.2s;
+      transition: all 0.15s ease;
     }
 
-    .stat-badge:hover { transform: scale(1.05); }
+    .stat-badge:hover { opacity: 0.8; }
 
-    .stat-mankai { background: linear-gradient(135deg, #FFB7C5, #FFD0DB); color: #8B0000; }
-    .stat-sakihajime { background: linear-gradient(135deg, #FFE4E8, #FFF0F3); color: #B22222; }
-    .stat-gobusaki { background: linear-gradient(135deg, #FFE4E8, #FFF0F3); color: #C62828; }
-    .stat-tsubomi { background: linear-gradient(135deg, #C8E6C9, #E8F5E9); color: #2E7D32; }
-    .stat-other { background: #F0F0F0; color: #555; }
+    .stat-mankai { background: #FDE7ED; color: #C2185B; }
+    .stat-sakihajime { background: #FCE4EC; color: #D32F2F; }
+    .stat-gobusaki { background: #FCE4EC; color: #D32F2F; }
+    .stat-tsubomi { background: #E8F5E9; color: #388E3C; }
+    .stat-other { background: #F5F5F5; color: #666; }
 
     /* ── Filters ── */
     #filters {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       flex-wrap: wrap;
       margin-left: auto;
     }
 
     .filter-btn {
-      padding: 5px 14px;
-      border: 1.5px solid #ddd;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.8);
-      font-size: 12px;
+      padding: 5px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 11px;
       font-weight: 500;
-      font-family: inherit;
+      font-family: 'Zen Maru Gothic', 'Inter', sans-serif;
       cursor: pointer;
-      transition: all 0.25s ease;
-      backdrop-filter: blur(4px);
+      transition: all 0.15s ease;
+      color: #555;
     }
 
     .filter-btn:hover {
-      border-color: var(--pink-pale);
-      background: rgba(255,183,197,0.15);
-      transform: translateY(-1px);
+      border-color: var(--pink-light);
+      color: var(--pink-deep);
+      background: #FFF5F7;
     }
 
     .filter-btn.active {
-      background: linear-gradient(135deg, var(--pink-deep), var(--pink-mid));
-      border-color: transparent;
+      background: var(--pink-deep);
+      border-color: var(--pink-deep);
       color: #fff;
-      box-shadow: 0 2px 8px rgba(216,27,96,0.3);
     }
 
     /* ── Map ── */
     #map {
-      height: calc(100vh - 62px);
+      height: calc(100vh - 56px);
       width: 100%;
     }
 
     /* Override cluster styles */
     .marker-cluster-small {
-      background-color: rgba(255,183,197,0.6) !important;
+      background-color: rgba(255,183,197,0.5) !important;
     }
     .marker-cluster-small div {
-      background-color: rgba(216,27,96,0.7) !important;
+      background-color: rgba(216,27,96,0.75) !important;
       color: #fff !important;
       font-weight: 600 !important;
-      font-family: 'Noto Sans JP', sans-serif !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 12px !important;
     }
     .marker-cluster-medium {
-      background-color: rgba(233,30,99,0.5) !important;
+      background-color: rgba(233,30,99,0.4) !important;
     }
     .marker-cluster-medium div {
       background-color: rgba(216,27,96,0.8) !important;
       color: #fff !important;
       font-weight: 600 !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 13px !important;
     }
     .marker-cluster-large {
-      background-color: rgba(216,27,96,0.5) !important;
+      background-color: rgba(216,27,96,0.35) !important;
     }
     .marker-cluster-large div {
-      background-color: rgba(136,14,79,0.8) !important;
+      background-color: rgba(136,14,79,0.85) !important;
       color: #fff !important;
       font-weight: 600 !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 14px !important;
     }
 
     /* ── Popup ── */
@@ -176,7 +190,7 @@
 
     .leaflet-popup-content {
       margin: 0 !important;
-      font-family: 'Noto Sans JP', sans-serif;
+      font-family: 'Zen Maru Gothic', 'Inter', sans-serif;
       min-width: 220px;
       max-width: 280px;
     }
@@ -270,20 +284,24 @@
 
     /* ── Legend ── */
     .legend {
-      background: rgba(255,255,255,0.95);
-      backdrop-filter: blur(10px);
-      padding: 14px 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      font-size: 12px;
-      line-height: 1.8;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 12px 14px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      font-size: 11px;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      line-height: 1.9;
     }
 
     .legend-title {
       font-weight: 700;
-      font-size: 13px;
-      margin-bottom: 6px;
-      color: #333;
+      font-size: 11px;
+      margin-bottom: 4px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .legend-item {
@@ -306,19 +324,23 @@
     /* ── Update banner ── */
     .update-banner {
       position: absolute;
-      bottom: 24px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      background: rgba(255,255,255,0.95);
-      backdrop-filter: blur(10px);
-      padding: 8px 20px;
-      border-radius: 24px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      font-size: 12px;
-      color: #888;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 6px 16px;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 400;
+      color: #999;
       display: none;
       white-space: nowrap;
+      letter-spacing: 0.2px;
     }
 
     /* ── Loading ── */
@@ -344,9 +366,11 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .loading-text {
-      font-size: 14px;
-      color: #999;
-      font-weight: 300;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 13px;
+      color: #bbb;
+      font-weight: 400;
+      letter-spacing: 0.5px;
     }
 
     /* ── Off-season ── */
@@ -371,34 +395,64 @@
     }
 
     #offseason .offseason-title {
-      font-size: 20px;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 18px;
       font-weight: 700;
       color: #333;
       margin-bottom: 8px;
+      letter-spacing: -0.3px;
     }
 
-    #offseason p { color: #888; font-size: 14px; line-height: 1.8; }
+    #offseason p {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      color: #999;
+      font-size: 13px;
+      line-height: 1.8;
+    }
 
     /* ── Custom tile layer (muted) ── */
-    .leaflet-tile-pane { filter: saturate(0.6) brightness(1.05); }
+    .leaflet-tile-pane { filter: saturate(0.5) brightness(1.06) contrast(0.95); }
+
+    /* ── Leaflet controls ── */
+    .leaflet-control-zoom a {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 300 !important;
+      border-radius: 6px !important;
+    }
+
+    .leaflet-control-zoom {
+      border-radius: 8px !important;
+      border: none !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+    }
+
+    .leaflet-control-attribution {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 10px !important;
+      background: rgba(255,255,255,0.7) !important;
+      backdrop-filter: blur(4px) !important;
+    }
 
     /* ── Mobile ── */
     @media (max-width: 768px) {
       #header {
-        padding: 10px 14px;
+        padding: 0 12px;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
+        height: auto;
+        padding-top: 8px;
+        padding-bottom: 8px;
       }
 
-      .logo h1 { font-size: 15px; }
-      .logo-icon { width: 30px; height: 30px; font-size: 15px; }
+      .logo h1 { font-size: 14px; }
+      .header-divider { display: none; }
 
-      #stats { order: 3; width: 100%; overflow-x: auto; }
+      #stats { order: 3; width: 100%; overflow-x: auto; padding-bottom: 2px; }
       #filters { order: 2; margin-left: 0; }
-      .filter-btn { padding: 4px 10px; font-size: 11px; }
-      .stat-badge { font-size: 11px; padding: 4px 8px; }
+      .filter-btn { padding: 3px 8px; font-size: 10px; }
+      .stat-badge { font-size: 10px; padding: 3px 6px; }
 
-      #map { height: calc(100vh - 100px); }
+      #map { height: calc(100vh - 90px); }
 
       .legend { display: none; }
     }
@@ -408,16 +462,18 @@
   <div id="header">
     <div class="logo">
       <div class="logo-icon">&#x1F338;</div>
-      <h1>Sakura <span>Mankai</span> Tracker</h1>
+      <h1>sakura <span>mankai</span> tracker</h1>
     </div>
+    <div class="header-divider"></div>
     <div id="stats"></div>
     <div id="filters">
       <button class="filter-btn active" data-filter="all">ALL</button>
-      <button class="filter-btn" data-filter="満開">&#x1F338; 満開</button>
-      <button class="filter-btn" data-filter="咲き始め">&#x1F33C; 咲き始め</button>
-      <button class="filter-btn" data-filter="つぼみ">&#x1F331; つぼみ</button>
-      <button class="filter-btn" data-filter="A">A層</button>
-      <button class="filter-btn" data-filter="B">B層</button>
+      <button class="filter-btn" data-filter="満開">満開</button>
+      <button class="filter-btn" data-filter="咲き始め">咲き始め</button>
+      <button class="filter-btn" data-filter="つぼみ">つぼみ</button>
+      <button class="filter-btn" data-filter="A">A</button>
+      <button class="filter-btn" data-filter="B">B</button>
+      <button class="filter-btn" data-filter="C">C</button>
     </div>
   </div>
 
