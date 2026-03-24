@@ -3,105 +3,353 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>sakura mankai tracker</title>
+  <title>Sakura Mankai Tracker</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    :root {
+      --pink-deep: #D81B60;
+      --pink-mid: #E91E63;
+      --pink-light: #F06292;
+      --pink-pale: #FFB7C5;
+      --pink-bg: #FFF0F3;
+      --green: #66BB6A;
+      --green-dark: #43A047;
+      --gray: #BDBDBD;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+      --radius: 16px;
+    }
 
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8f8f8;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* ── Header ── */
     #header {
-      background: linear-gradient(135deg, #FFB7C5 0%, #FFF0F3 100%);
-      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--pink-pale) 0%, var(--pink-bg) 50%, #fff 100%);
+      padding: 14px 24px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      gap: 16px;
+      box-shadow: var(--shadow);
       z-index: 1000;
       position: relative;
+      backdrop-filter: blur(10px);
     }
 
-    #header h1 {
-      font-size: 20px;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--pink-deep), var(--pink-light));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(216,27,96,0.3);
+    }
+
+    .logo h1 {
+      font-size: 18px;
+      font-weight: 700;
       color: #333;
+      letter-spacing: -0.5px;
     }
 
+    .logo h1 span { color: var(--pink-deep); }
+
+    /* ── Stats bar ── */
     #stats {
       display: flex;
-      gap: 12px;
-      font-size: 13px;
-      color: #555;
+      gap: 8px;
+      font-size: 12px;
+      flex-shrink: 0;
     }
 
     .stat-badge {
-      padding: 4px 10px;
-      border-radius: 12px;
+      padding: 5px 12px;
+      border-radius: 20px;
       font-weight: 600;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: transform 0.2s;
     }
 
-    .stat-mankai { background: #FFB7C5; color: #8B0000; }
-    .stat-sakihajime { background: #FFE4E8; color: #B22222; }
-    .stat-tsubomi { background: #E8F5E9; color: #2E7D32; }
-    .stat-other { background: #F5F5F5; color: #555; }
+    .stat-badge:hover { transform: scale(1.05); }
 
+    .stat-mankai { background: linear-gradient(135deg, #FFB7C5, #FFD0DB); color: #8B0000; }
+    .stat-sakihajime { background: linear-gradient(135deg, #FFE4E8, #FFF0F3); color: #B22222; }
+    .stat-gobusaki { background: linear-gradient(135deg, #FFE4E8, #FFF0F3); color: #C62828; }
+    .stat-tsubomi { background: linear-gradient(135deg, #C8E6C9, #E8F5E9); color: #2E7D32; }
+    .stat-other { background: #F0F0F0; color: #555; }
+
+    /* ── Filters ── */
     #filters {
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
+      margin-left: auto;
     }
 
     .filter-btn {
-      padding: 4px 10px;
-      border: 1px solid #ccc;
-      border-radius: 14px;
-      background: white;
+      padding: 5px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.8);
       font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .filter-btn:hover {
+      border-color: var(--pink-pale);
+      background: rgba(255,183,197,0.15);
+      transform: translateY(-1px);
     }
 
     .filter-btn.active {
-      background: #FFB7C5;
-      border-color: #FFB7C5;
-      color: #8B0000;
+      background: linear-gradient(135deg, var(--pink-deep), var(--pink-mid));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(216,27,96,0.3);
     }
 
-    .filter-btn:hover { border-color: #FFB7C5; }
+    /* ── Map ── */
+    #map {
+      height: calc(100vh - 62px);
+      width: 100%;
+    }
 
-    #map { height: calc(100vh - 56px); width: 100%; }
+    /* Override cluster styles */
+    .marker-cluster-small {
+      background-color: rgba(255,183,197,0.6) !important;
+    }
+    .marker-cluster-small div {
+      background-color: rgba(216,27,96,0.7) !important;
+      color: #fff !important;
+      font-weight: 600 !important;
+      font-family: 'Noto Sans JP', sans-serif !important;
+    }
+    .marker-cluster-medium {
+      background-color: rgba(233,30,99,0.5) !important;
+    }
+    .marker-cluster-medium div {
+      background-color: rgba(216,27,96,0.8) !important;
+      color: #fff !important;
+      font-weight: 600 !important;
+    }
+    .marker-cluster-large {
+      background-color: rgba(216,27,96,0.5) !important;
+    }
+    .marker-cluster-large div {
+      background-color: rgba(136,14,79,0.8) !important;
+      color: #fff !important;
+      font-weight: 600 !important;
+    }
+
+    /* ── Popup ── */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+      padding: 0 !important;
+      overflow: hidden;
+    }
 
     .leaflet-popup-content {
-      font-size: 13px;
-      line-height: 1.6;
-      min-width: 180px;
+      margin: 0 !important;
+      font-family: 'Noto Sans JP', sans-serif;
+      min-width: 220px;
+      max-width: 280px;
     }
 
-    .popup-title {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 4px;
+    .leaflet-popup-tip {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
     }
 
-    .popup-tier {
+    .popup-card {
+      padding: 0;
+    }
+
+    .popup-header {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .popup-tier-badge {
       display: inline-block;
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 10px;
       font-weight: 600;
-      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
     }
 
     .tier-a { background: #E3F2FD; color: #1565C0; }
     .tier-b { background: #FFF3E0; color: #E65100; }
     .tier-c { background: #F3E5F5; color: #7B1FA2; }
 
-    .popup-status {
-      font-size: 14px;
-      font-weight: 600;
-      margin: 4px 0;
+    .popup-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #222;
+      line-height: 1.3;
     }
 
+    .popup-region {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .popup-body {
+      padding: 10px 16px 14px;
+    }
+
+    .popup-status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .popup-status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .popup-status-text {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .popup-detail {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #666;
+      padding: 3px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    .popup-detail:last-child { border-bottom: none; }
+
+    .popup-detail-label { color: #999; }
+    .popup-detail-value { font-weight: 500; color: #444; }
+
+    .popup-note {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 8px;
+      line-height: 1.4;
+      padding-top: 8px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      padding: 14px 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .legend-title {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.8);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .legend-label { color: #555; }
+
+    /* ── Update banner ── */
+    .update-banner {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      padding: 8px 20px;
+      border-radius: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      font-size: 12px;
+      color: #888;
+      display: none;
+      white-space: nowrap;
+    }
+
+    /* ── Loading ── */
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      text-align: center;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid #f0f0f0;
+      border-top: 3px solid var(--pink-deep);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 14px;
+      color: #999;
+      font-weight: 300;
+    }
+
+    /* ── Off-season ── */
     #offseason {
       display: none;
       position: absolute;
@@ -110,86 +358,148 @@
       transform: translate(-50%, -50%);
       text-align: center;
       z-index: 1000;
-      background: rgba(255,255,255,0.95);
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      padding: 48px 56px;
+      border-radius: 24px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
     }
 
-    #offseason h2 { font-size: 48px; margin-bottom: 12px; }
-    #offseason p { color: #666; font-size: 16px; }
+    #offseason h2 {
+      font-size: 56px;
+      margin-bottom: 8px;
+    }
 
-    #loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 1000;
-      text-align: center;
-      font-size: 18px;
-      color: #888;
+    #offseason .offseason-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    #offseason p { color: #888; font-size: 14px; line-height: 1.8; }
+
+    /* ── Custom tile layer (muted) ── */
+    .leaflet-tile-pane { filter: saturate(0.6) brightness(1.05); }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      #header {
+        padding: 10px 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .logo h1 { font-size: 15px; }
+      .logo-icon { width: 30px; height: 30px; font-size: 15px; }
+
+      #stats { order: 3; width: 100%; overflow-x: auto; }
+      #filters { order: 2; margin-left: 0; }
+      .filter-btn { padding: 4px 10px; font-size: 11px; }
+      .stat-badge { font-size: 11px; padding: 4px 8px; }
+
+      #map { height: calc(100vh - 100px); }
+
+      .legend { display: none; }
     }
   </style>
 </head>
 <body>
   <div id="header">
-    <h1>sakura mankai tracker</h1>
+    <div class="logo">
+      <div class="logo-icon">&#x1F338;</div>
+      <h1>Sakura <span>Mankai</span> Tracker</h1>
+    </div>
     <div id="stats"></div>
     <div id="filters">
-      <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="満開">満開</button>
-      <button class="filter-btn" data-filter="咲き始め">咲き始め</button>
-      <button class="filter-btn" data-filter="つぼみ">つぼみ</button>
+      <button class="filter-btn active" data-filter="all">ALL</button>
+      <button class="filter-btn" data-filter="満開">&#x1F338; 満開</button>
+      <button class="filter-btn" data-filter="咲き始め">&#x1F33C; 咲き始め</button>
+      <button class="filter-btn" data-filter="つぼみ">&#x1F331; つぼみ</button>
       <button class="filter-btn" data-filter="A">A層</button>
       <button class="filter-btn" data-filter="B">B層</button>
     </div>
   </div>
+
   <div id="map"></div>
-  <div id="loading">Loading data...</div>
+
+  <div id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading sakura data...</div>
+  </div>
+
+  <div class="update-banner" id="updateBanner"></div>
+
   <div id="offseason">
-    <h2>sakura</h2>
-    <p>sakura season (3月-5月) is over.</p>
-    <p>See you next spring!</p>
+    <h2>&#x1F338;</h2>
+    <div class="offseason-title">See You Next Spring</div>
+    <p>Cherry blossom season (March - May) has ended.</p>
+    <p>Data will refresh automatically next year.</p>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script>
-    // Google Sheet published CSV URL — replace SHEET_ID with your actual sheet ID
     const SHEET_ID = '1Y72gResgcAmd0aIcL5FyOWmimIWD0wNi1V-4DbZ4sBk';
     const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
-    const STATUS_COLORS = {
-      '満開': '#D81B60',
-      '咲き始め': '#E91E63',
-      '5分咲き': '#EC407A',
-      '7分咲き': '#F06292',
-      'つぼみ': '#66BB6A',
-      '散り始め': '#BDBDBD',
-      '青葉': '#43A047',
+    const STATUS_CONFIG = {
+      '満開':    { color: '#D81B60', size: 14, emoji: '\u{1F338}', glow: 'rgba(216,27,96,0.4)' },
+      '7分咲き': { color: '#E91E63', size: 11, emoji: '\u{1F338}', glow: 'rgba(233,30,99,0.3)' },
+      '5分咲き': { color: '#EC407A', size: 10, emoji: '\u{1F33C}', glow: 'rgba(236,64,122,0.25)' },
+      '咲き始め': { color: '#F06292', size: 9,  emoji: '\u{1F33C}', glow: 'rgba(240,98,146,0.2)' },
+      'つぼみ':   { color: '#66BB6A', size: 7,  emoji: '\u{1F331}', glow: 'rgba(102,187,106,0.2)' },
+      '散り始め': { color: '#BDBDBD', size: 7,  emoji: '\u{1F342}', glow: 'rgba(189,189,189,0.2)' },
+      '青葉':    { color: '#43A047', size: 7,  emoji: '\u{1F333}', glow: 'rgba(67,160,71,0.2)' },
     };
 
-    const STATUS_SIZES = {
-      '満開': 12,
-      '7分咲き': 10,
-      '5分咲き': 10,
-      '咲き始め': 8,
-      'つぼみ': 6,
-      '散り始め': 6,
-      '青葉': 6,
-    };
+    const TIER_OPACITY = { A: 1.0, B: 0.85, C: 0.55 };
+    const TIER_LABELS = { A: '気象庁公式', B: 'Walker+ 実測', C: 'Walker+ 推定' };
 
-    const TIER_OPACITY = { 'A': 1.0, 'B': 0.85, 'C': 0.5 };
+    // Map with refined style
+    const map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false,
+    }).setView([36.2, 137.5], 6);
 
-    // Init map centered on Japan
-    const map = L.map('map').setView([36.5, 137.5], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    // Zoom control top-right
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Attribution bottom-right
+    L.control.attribution({ position: 'bottomright', prefix: false })
+      .addAttribution('&copy; <a href="https://www.openstreetmap.org/">OSM</a> &middot; <a href="https://www.jma.go.jp/">JMA</a>')
+      .addTo(map);
+
+    // Cleaner tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 18,
+      subdomains: 'abcd',
     }).addTo(map);
 
-    let allMarkers = [];
-    let allData = [];
+    // Marker cluster group
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 40,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      disableClusteringAtZoom: 10,
+      iconCreateFunction: function(cluster) {
+        const count = cluster.getChildCount();
+        let size = 'small';
+        if (count > 50) size = 'large';
+        else if (count > 20) size = 'medium';
+        return L.divIcon({
+          html: `<div>${count}</div>`,
+          className: `marker-cluster marker-cluster-${size}`,
+          iconSize: L.point(40, 40),
+        });
+      },
+    });
 
+    let allMarkers = [];
+    let activeFilter = 'all';
+
+    // ── CSV Parser ──
     function parseCSV(text) {
       const lines = text.split('\n');
       const headers = parseCSVLine(lines[0]);
@@ -207,31 +517,25 @@
       let inQuotes = false;
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
-        if (ch === '"') {
-          inQuotes = !inQuotes;
-        } else if (ch === ',' && !inQuotes) {
-          result.push(current);
-          current = '';
-        } else {
-          current += ch;
-        }
+        if (ch === '"') inQuotes = !inQuotes;
+        else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+        else current += ch;
       }
       result.push(current);
       return result;
     }
 
     function extractStatus(text) {
-      // Remove emoji prefix
-      return text.replace(/[^\u3000-\u9FFF\u4E00-\u9FAFa-zA-Z0-9ぁ-んァ-ヶ]/g, '').trim();
+      return text.replace(/[^\u3000-\u9FFF\u4E00-\u9FAFa-zA-Z0-9\u3041-\u3093\u30A1-\u30F6]/g, '').trim();
     }
 
     function extractTier(text) {
       if (text.includes('気象庁')) return 'A';
       if (text.includes('実測')) return 'B';
-      if (text.includes('推定')) return 'C';
       return 'C';
     }
 
+    // ── Marker Factory ──
     function createMarker(row) {
       const lat = parseFloat(row['緯度']);
       const lng = parseFloat(row['経度']);
@@ -239,39 +543,69 @@
 
       const status = extractStatus(row['状態'] || '');
       const tier = extractTier(row['データ層'] || '');
-      const color = STATUS_COLORS[status] || '#999';
-      const size = STATUS_SIZES[status] || 6;
-      const opacity = TIER_OPACITY[tier] || 0.5;
-
-      const tierLabels = { A: '気象庁公式', B: 'Walker+実測', C: 'Walker+推定' };
-      const tierClass = `tier-${tier.toLowerCase()}`;
+      const config = STATUS_CONFIG[status] || { color: '#999', size: 7, emoji: '', glow: 'transparent' };
+      const opacity = TIER_OPACITY[tier] || 0.55;
 
       const marker = L.circleMarker([lat, lng], {
-        radius: size,
-        fillColor: color,
+        radius: config.size,
+        fillColor: config.color,
         color: '#fff',
-        weight: 1.5,
+        weight: 2,
         opacity: 1,
         fillOpacity: opacity,
+        className: status === '満開' ? 'mankai-pulse' : '',
       });
 
-      marker.bindPopup(`
-        <span class="popup-tier ${tierClass}">${tierLabels[tier] || tier}</span>
-        <div class="popup-title">${row['地点/景点'] || ''}</div>
-        <div class="popup-status" style="color:${color}">${row['状態'] || ''}</div>
-        <div>${row['地域'] || ''}</div>
-        ${row['観測日'] !== '--' ? `<div>観測日: ${row['観測日']}</div>` : ''}
-        ${row['平年日/見頃'] !== '--' ? `<div>平年/見頃: ${row['平年日/見頃']}</div>` : ''}
-        ${row['タグ'] ? `<div style="font-size:11px;color:#888;margin-top:4px">${row['タグ']}</div>` : ''}
-        ${row['備考'] ? `<div style="font-size:11px;color:#888">${row['備考']}</div>` : ''}
-      `);
+      const tierClass = `tier-${tier.toLowerCase()}`;
+      const popupHTML = `
+        <div class="popup-card">
+          <div class="popup-header">
+            <span class="popup-tier-badge ${tierClass}">${TIER_LABELS[tier] || tier}</span>
+            <div class="popup-name">${row['地点/景点'] || ''}</div>
+            <div class="popup-region">${row['地域'] || ''}</div>
+          </div>
+          <div class="popup-body">
+            <div class="popup-status-row">
+              <div class="popup-status-dot" style="background:${config.color};box-shadow:0 0 6px ${config.glow}"></div>
+              <div class="popup-status-text" style="color:${config.color}">${config.emoji} ${row['状態'] || ''}</div>
+            </div>
+            ${row['観測日'] && row['観測日'] !== '--' ? `
+              <div class="popup-detail">
+                <span class="popup-detail-label">観測日</span>
+                <span class="popup-detail-value">${row['観測日']}</span>
+              </div>` : ''}
+            ${row['平年日/見頃'] && row['平年日/見頃'] !== '--' ? `
+              <div class="popup-detail">
+                <span class="popup-detail-label">平年/見頃</span>
+                <span class="popup-detail-value">${row['平年日/見頃']}</span>
+              </div>` : ''}
+            ${row['タグ'] ? `<div class="popup-note">${row['タグ']}</div>` : ''}
+            ${row['備考'] ? `<div class="popup-note">${row['備考']}</div>` : ''}
+          </div>
+        </div>`;
+
+      marker.bindPopup(popupHTML, { closeButton: false, offset: [0, -4] });
+
+      // Hover effect
+      marker.on('mouseover', function() {
+        this.setStyle({ weight: 3, radius: config.size + 3 });
+        this.openPopup();
+      });
+      marker.on('mouseout', function() {
+        this.setStyle({ weight: 2, radius: config.size });
+        this.closePopup();
+      });
+      marker.on('click', function() {
+        this.openPopup();
+      });
 
       marker._data = { status, tier };
       return marker;
     }
 
+    // ── Stats ──
     function updateStats() {
-      const visible = allMarkers.filter(m => map.hasLayer(m));
+      const visible = allMarkers.filter(m => clusterGroup.hasLayer(m));
       const counts = {};
       visible.forEach(m => {
         const s = m._data.status;
@@ -280,19 +614,24 @@
 
       const statsEl = document.getElementById('stats');
       const badges = [
-        { key: '満開', cls: 'stat-mankai' },
-        { key: '咲き始め', cls: 'stat-sakihajime' },
-        { key: 'つぼみ', cls: 'stat-tsubomi' },
+        { key: '満開', cls: 'stat-mankai', emoji: '\u{1F338}' },
+        { key: '咲き始め', cls: 'stat-sakihajime', emoji: '\u{1F33C}' },
+        { key: '5分咲き', cls: 'stat-gobusaki', emoji: '\u{1F33C}' },
+        { key: 'つぼみ', cls: 'stat-tsubomi', emoji: '\u{1F331}' },
       ];
 
       statsEl.innerHTML = badges
         .filter(b => counts[b.key])
-        .map(b => `<span class="stat-badge ${b.cls}">${b.key}: ${counts[b.key]}</span>`)
+        .map(b => `<span class="stat-badge ${b.cls}">${b.emoji} ${b.key} ${counts[b.key]}</span>`)
         .join('') +
-        `<span class="stat-badge stat-other">表示中: ${visible.length}</span>`;
+        `<span class="stat-badge stat-other">${visible.length} spots</span>`;
     }
 
+    // ── Filters ──
     function applyFilter(filter) {
+      activeFilter = filter;
+      clusterGroup.clearLayers();
+
       allMarkers.forEach(m => {
         const { status, tier } = m._data;
         let show = false;
@@ -300,13 +639,12 @@
         else if (filter === 'A' || filter === 'B' || filter === 'C') show = tier === filter;
         else show = status === filter;
 
-        if (show) m.addTo(map);
-        else map.removeLayer(m);
+        if (show) clusterGroup.addLayer(m);
       });
+
       updateStats();
     }
 
-    // Filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -315,14 +653,34 @@
       });
     });
 
-    // Load data
+    // ── Legend ──
+    const legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = function() {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = `
+        <div class="legend-title">Bloom Status</div>
+        ${Object.entries(STATUS_CONFIG).map(([name, cfg]) => `
+          <div class="legend-item">
+            <div class="legend-dot" style="background:${cfg.color}"></div>
+            <span class="legend-label">${cfg.emoji} ${name}</span>
+          </div>
+        `).join('')}
+      `;
+      return div;
+    };
+    legend.addTo(map);
+
+    // ── Load Data ──
     fetch(CSV_URL)
-      .then(r => r.text())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      })
       .then(csv => {
         document.getElementById('loading').style.display = 'none';
 
-        // Skip first row (title row) — actual headers are row 2
         const lines = csv.split('\n');
+        // First row is title row, skip it
         const dataCSV = lines.slice(1).join('\n');
         const rows = parseCSV(dataCSV);
 
@@ -334,15 +692,32 @@
         rows.forEach(row => {
           const marker = createMarker(row);
           if (marker) {
-            marker.addTo(map);
+            clusterGroup.addLayer(marker);
             allMarkers.push(marker);
           }
         });
 
+        map.addLayer(clusterGroup);
         updateStats();
+
+        // Show update timestamp from first row
+        const titleLine = lines[0] || '';
+        const timeMatch = titleLine.match(/最終更新:\s*([^"A-Z]+)/);
+        if (timeMatch) {
+          const banner = document.getElementById('updateBanner');
+          banner.textContent = `Last updated: ${timeMatch[1].trim()}`;
+          banner.style.display = 'block';
+          setTimeout(() => { banner.style.opacity = '0'; banner.style.transition = 'opacity 2s'; }, 5000);
+        }
       })
       .catch(err => {
-        document.getElementById('loading').textContent = 'Failed to load data';
+        const loadEl = document.getElementById('loading');
+        loadEl.innerHTML = `
+          <div style="font-size:40px;margin-bottom:16px">\u{1F338}</div>
+          <div style="color:#999;font-size:14px">
+            Waiting for data connection...<br>
+            <span style="font-size:12px;color:#bbb">Ensure the Google Sheet is published to web</span>
+          </div>`;
         console.error(err);
       });
   </script>
