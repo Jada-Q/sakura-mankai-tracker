@@ -1,4 +1,7 @@
 import "dotenv/config";
+import { writeFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { scrapeJMA } from "./scraper/jma-scraper.js";
 import { scrapeWalker } from "./scraper/walker-scraper.js";
 import { classifyWalkerSpots } from "./scraper/estimator.js";
@@ -91,6 +94,33 @@ async function main() {
       logger.info(`  [${s.tier}] ${name}`);
     }
   }
+
+  // Step 6: Write JSON for GitHub Pages map
+  logger.info("Step 6: Writing docs/data.json for map...");
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const dataPath = resolve(__dirname, "../docs/data.json");
+  const now = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+  const mapData = {
+    updatedAt: now,
+    counts: { A: jmaResult.locations.length, B: observed.length, C: estimated.length },
+    spots: allSpots.map((s) => {
+      const coords = s.coordinates;
+      const base = {
+        tier: s.tier,
+        name: s.tier === "A" ? s.locationName : s.spotName,
+        region: s.tier === "A" ? s.region : `${s.prefecture}${s.city}`,
+        status: s.bloomStatus,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+      };
+      if (s.tier === "A") {
+        return { ...base, date: s.observationDate || null, normalDate: s.normalDate || null };
+      }
+      return { ...base, season: s.viewingSeason || null, tags: s.tags?.slice(0, 3) || [] };
+    }),
+  };
+  writeFileSync(dataPath, JSON.stringify(mapData));
+  logger.info(`Written ${mapData.spots.length} spots to ${dataPath}`);
 
   logger.info("🌸 Pipeline complete!");
 }

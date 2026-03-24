@@ -496,9 +496,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script>
-    const SHEET_ID = '1Y72gResgcAmd0aIcL5FyOWmimIWD0wNi1V-4DbZ4sBk';
-    const SHEET_GID = '1999368814'; // 🌸 2026 tab
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`;
+    const DATA_URL = 'data.json';
 
     const STATUS_CONFIG = {
       '満開':    { color: '#D81B60', size: 14, emoji: '\u{1F338}', glow: 'rgba(216,27,96,0.4)' },
@@ -556,94 +554,61 @@
     let allMarkers = [];
     let activeFilter = 'all';
 
-    // ── CSV Parser ──
-    function parseCSV(text) {
-      const lines = text.split('\n');
-      const headers = parseCSVLine(lines[0]);
-      return lines.slice(1).filter(l => l.trim()).map(line => {
-        const values = parseCSVLine(line);
-        const obj = {};
-        headers.forEach((h, i) => obj[h.replace(/"/g, '')] = (values[i] || '').replace(/"/g, ''));
-        return obj;
-      });
-    }
+    // ── Marker Factory (from JSON) ──
+    function createMarker(spot) {
+      if (!spot.lat || !spot.lng) return null;
 
-    function parseCSVLine(line) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') inQuotes = !inQuotes;
-        else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
-        else current += ch;
-      }
-      result.push(current);
-      return result;
-    }
-
-    function extractStatus(text) {
-      return text.replace(/[^\u3000-\u9FFF\u4E00-\u9FAFa-zA-Z0-9\u3041-\u3093\u30A1-\u30F6]/g, '').trim();
-    }
-
-    function extractTier(text) {
-      if (text.includes('気象庁')) return 'A';
-      if (text.includes('実測')) return 'B';
-      return 'C';
-    }
-
-    // ── Marker Factory ──
-    function createMarker(row) {
-      const lat = parseFloat(row['緯度']);
-      const lng = parseFloat(row['経度']);
-      if (isNaN(lat) || isNaN(lng) || row['緯度'] === '--') return null;
-
-      const status = extractStatus(row['状態'] || '');
-      const tier = extractTier(row['データ層'] || '');
+      const status = spot.status;
+      const tier = spot.tier;
       const config = STATUS_CONFIG[status] || { color: '#999', size: 7, emoji: '', glow: 'transparent' };
       const opacity = TIER_OPACITY[tier] || 0.55;
 
-      const marker = L.circleMarker([lat, lng], {
+      const marker = L.circleMarker([spot.lat, spot.lng], {
         radius: config.size,
         fillColor: config.color,
         color: '#fff',
         weight: 2,
         opacity: 1,
         fillOpacity: opacity,
-        className: status === '満開' ? 'mankai-pulse' : '',
       });
 
       const tierClass = `tier-${tier.toLowerCase()}`;
+      const dateInfo = spot.date ? `
+        <div class="popup-detail">
+          <span class="popup-detail-label">観測日</span>
+          <span class="popup-detail-value">${spot.date}</span>
+        </div>` : '';
+      const seasonInfo = spot.season ? `
+        <div class="popup-detail">
+          <span class="popup-detail-label">見頃</span>
+          <span class="popup-detail-value">${spot.season}</span>
+        </div>` : '';
+      const normalInfo = spot.normalDate ? `
+        <div class="popup-detail">
+          <span class="popup-detail-label">平年日</span>
+          <span class="popup-detail-value">${spot.normalDate}</span>
+        </div>` : '';
+      const tagsInfo = spot.tags && spot.tags.length ? `
+        <div class="popup-note">${spot.tags.join(', ')}</div>` : '';
+
       const popupHTML = `
         <div class="popup-card">
           <div class="popup-header">
             <span class="popup-tier-badge ${tierClass}">${TIER_LABELS[tier] || tier}</span>
-            <div class="popup-name">${row['地点/景点'] || ''}</div>
-            <div class="popup-region">${row['地域'] || ''}</div>
+            <div class="popup-name">${spot.name}</div>
+            <div class="popup-region">${spot.region}</div>
           </div>
           <div class="popup-body">
             <div class="popup-status-row">
               <div class="popup-status-dot" style="background:${config.color};box-shadow:0 0 6px ${config.glow}"></div>
-              <div class="popup-status-text" style="color:${config.color}">${config.emoji} ${row['状態'] || ''}</div>
+              <div class="popup-status-text" style="color:${config.color}">${config.emoji} ${status}</div>
             </div>
-            ${row['観測日'] && row['観測日'] !== '--' ? `
-              <div class="popup-detail">
-                <span class="popup-detail-label">観測日</span>
-                <span class="popup-detail-value">${row['観測日']}</span>
-              </div>` : ''}
-            ${row['平年日/見頃'] && row['平年日/見頃'] !== '--' ? `
-              <div class="popup-detail">
-                <span class="popup-detail-label">平年/見頃</span>
-                <span class="popup-detail-value">${row['平年日/見頃']}</span>
-              </div>` : ''}
-            ${row['タグ'] ? `<div class="popup-note">${row['タグ']}</div>` : ''}
-            ${row['備考'] ? `<div class="popup-note">${row['備考']}</div>` : ''}
+            ${dateInfo}${normalInfo}${seasonInfo}${tagsInfo}
           </div>
         </div>`;
 
       marker.bindPopup(popupHTML, { closeButton: false, offset: [0, -4] });
 
-      // Hover effect
       marker.on('mouseover', function() {
         this.setStyle({ weight: 3, radius: config.size + 3 });
         this.openPopup();
@@ -652,9 +617,7 @@
         this.setStyle({ weight: 2, radius: config.size });
         this.closePopup();
       });
-      marker.on('click', function() {
-        this.openPopup();
-      });
+      marker.on('click', function() { this.openPopup(); });
 
       marker._data = { status, tier };
       return marker;
@@ -727,27 +690,22 @@
     };
     legend.addTo(map);
 
-    // ── Load Data ──
-    fetch(CSV_URL)
+    // ── Load Data from JSON ──
+    fetch(DATA_URL)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.text();
+        return r.json();
       })
-      .then(csv => {
+      .then(data => {
         document.getElementById('loading').style.display = 'none';
 
-        const lines = csv.split('\n');
-        // First row is title row, skip it
-        const dataCSV = lines.slice(1).join('\n');
-        const rows = parseCSV(dataCSV);
-
-        if (rows.length === 0) {
+        if (!data.spots || data.spots.length === 0) {
           document.getElementById('offseason').style.display = 'block';
           return;
         }
 
-        rows.forEach(row => {
-          const marker = createMarker(row);
+        data.spots.forEach(spot => {
+          const marker = createMarker(spot);
           if (marker) {
             clusterGroup.addLayer(marker);
             allMarkers.push(marker);
@@ -757,12 +715,10 @@
         map.addLayer(clusterGroup);
         updateStats();
 
-        // Show update timestamp from first row
-        const titleLine = lines[0] || '';
-        const timeMatch = titleLine.match(/最終更新:\s*([^"A-Z]+)/);
-        if (timeMatch) {
+        // Show update timestamp
+        if (data.updatedAt) {
           const banner = document.getElementById('updateBanner');
-          banner.textContent = `Last updated: ${timeMatch[1].trim()}`;
+          banner.textContent = `${data.updatedAt} updated`;
           banner.style.display = 'block';
           setTimeout(() => { banner.style.opacity = '0'; banner.style.transition = 'opacity 2s'; }, 5000);
         }
@@ -771,10 +727,7 @@
         const loadEl = document.getElementById('loading');
         loadEl.innerHTML = `
           <div style="font-size:40px;margin-bottom:16px">\u{1F338}</div>
-          <div style="color:#999;font-size:14px">
-            Waiting for data connection...<br>
-            <span style="font-size:12px;color:#bbb">Ensure the Google Sheet is published to web</span>
-          </div>`;
+          <div style="color:#999;font-size:14px">Data not available yet</div>`;
         console.error(err);
       });
   </script>
