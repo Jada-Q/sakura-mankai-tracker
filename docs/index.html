@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -33,14 +35,12 @@
 
     /* ── Header ── */
     #header {
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(20px) saturate(1.8);
-      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      background: #fff;
       padding: 0 24px;
       display: flex;
       align-items: center;
       gap: 20px;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+      border-bottom: 1px solid #f0f0f0;
       z-index: 1000;
       position: relative;
       height: 56px;
