@@ -94,6 +94,7 @@ export function classifyWalkerSpots(
         tags: spot.tags,
         detailUrl: spot.detailUrl,
         imageUrl: spot.imageUrl,
+        coordinates: spot.coordinates,
       });
     } else {
       // C tier: estimate from nearest JMA point
@@ -112,6 +113,7 @@ export function classifyWalkerSpots(
         tags: spot.tags,
         detailUrl: spot.detailUrl,
         imageUrl: spot.imageUrl,
+        coordinates: spot.coordinates,
       });
     }
   }

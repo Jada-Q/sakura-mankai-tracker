@@ -79,8 +79,8 @@ export function formatSpotRow(spot: SakuraSpot): string[] {
       statusText,
       "--",
       spot.viewingSeason,
-      "--",
-      "--",
+      spot.coordinates ? String(spot.coordinates.lat) : "--",
+      spot.coordinates ? String(spot.coordinates.lng) : "--",
       spot.tags.slice(0, 3).join(", "),
       "",
     ];
@@ -94,8 +94,8 @@ export function formatSpotRow(spot: SakuraSpot): string[] {
     statusText,
     "--",
     spot.viewingSeason,
-    "--",
-    "--",
+    spot.coordinates ? String(spot.coordinates.lat) : "--",
+    spot.coordinates ? String(spot.coordinates.lng) : "--",
     spot.tags.slice(0, 3).join(", "),
     `推定(${spot.estimatedFrom})`,
   ];

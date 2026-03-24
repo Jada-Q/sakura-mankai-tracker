@@ -38,6 +38,7 @@ export interface WalkerSpotObserved {
   tags: string[];
   detailUrl: string;
   imageUrl: string | null;
+  coordinates: { lat: number; lng: number } | null;
 }
 
 // === C Tier: Walker+ Spot without Status (Estimated) ===
@@ -52,6 +53,7 @@ export interface WalkerSpotEstimated {
   tags: string[];
   detailUrl: string;
   imageUrl: string | null;
+  coordinates: { lat: number; lng: number } | null;
 }
 
 export type SakuraSpot = JMALocation | WalkerSpotObserved | WalkerSpotEstimated;
@@ -72,6 +74,7 @@ export interface WalkerRawSpot {
   tags: string[];
   detailUrl: string;
   imageUrl: string | null;
+  coordinates: { lat: number; lng: number } | null;
 }
 
 export interface WalkerScrapeResult {

@@ -125,6 +125,7 @@ function parseListPage(html: string): {
       tags,
       detailUrl: fullUrl,
       imageUrl: jsonLd?.imageUrl || null,
+      coordinates: null, // filled later by fetchCoordinates
     });
   });
 
@@ -187,6 +188,58 @@ async function scrapeRegion(regionCode: string): Promise<WalkerRawSpot[]> {
   return allSpots;
 }
 
+async function fetchSpotCoordinates(
+  spot: WalkerRawSpot
+): Promise<{ lat: number; lng: number } | null> {
+  try {
+    // Extract coordinates from the map.html subpage
+    const mapUrl = spot.detailUrl.replace(/\/?$/, "/map.html");
+    const res = await axios.get(mapUrl, {
+      responseType: "text",
+      timeout: TIMEOUT_MS,
+    });
+    const match = res.data.match(/q=([\d.]+),([\d.]+)/);
+    if (match) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      if (!isNaN(lat) && !isNaN(lng) && lat > 20 && lat < 50 && lng > 120 && lng < 155) {
+        return { lat, lng };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const CONCURRENCY = 10; // parallel requests for coordinate fetching
+const COORD_DELAY_MS = 200; // small delay between batches
+
+async function fetchAllCoordinates(spots: WalkerRawSpot[]): Promise<void> {
+  let fetched = 0;
+  for (let i = 0; i < spots.length; i += CONCURRENCY) {
+    const batch = spots.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      batch.map((spot) => fetchSpotCoordinates(spot))
+    );
+    results.forEach((coords, j) => {
+      if (coords) {
+        spots[i + j].coordinates = coords;
+        fetched++;
+      }
+    });
+    if (i + CONCURRENCY < spots.length) {
+      await sleep(COORD_DELAY_MS);
+    }
+    if ((i + CONCURRENCY) % 100 === 0 || i + CONCURRENCY >= spots.length) {
+      logger.info(
+        `Coordinates: ${fetched}/${spots.length} fetched (${Math.min(i + CONCURRENCY, spots.length)} processed)`
+      );
+    }
+  }
+  logger.info(`Coordinates complete: ${fetched}/${spots.length} spots geocoded`);
+}
+
 export async function scrapeWalker(): Promise<WalkerScrapeResult> {
   logger.info(`Scraping Walker+ spots from ${REGION_CODES.length} regions...`);
 
@@ -207,6 +260,10 @@ export async function scrapeWalker(): Promise<WalkerScrapeResult> {
     );
     await sleep(DELAY_MS);
   }
+
+  // Fetch coordinates from map.html pages (concurrent batches)
+  logger.info(`Fetching coordinates for ${allSpots.length} spots...`);
+  await fetchAllCoordinates(allSpots);
 
   return {
     scrapedAt: new Date().toISOString(),
