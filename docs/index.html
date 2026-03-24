@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sakura mankai tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    #header {
+      background: linear-gradient(135deg, #FFB7C5 0%, #FFF0F3 100%);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+      position: relative;
+    }
+
+    #header h1 {
+      font-size: 20px;
+      color: #333;
+    }
+
+    #stats {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .stat-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .stat-mankai { background: #FFB7C5; color: #8B0000; }
+    .stat-sakihajime { background: #FFE4E8; color: #B22222; }
+    .stat-tsubomi { background: #E8F5E9; color: #2E7D32; }
+    .stat-other { background: #F5F5F5; color: #555; }
+
+    #filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 4px 10px;
+      border: 1px solid #ccc;
+      border-radius: 14px;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn.active {
+      background: #FFB7C5;
+      border-color: #FFB7C5;
+      color: #8B0000;
+    }
+
+    .filter-btn:hover { border-color: #FFB7C5; }
+
+    #map { height: calc(100vh - 56px); width: 100%; }
+
+    .leaflet-popup-content {
+      font-size: 13px;
+      line-height: 1.6;
+      min-width: 180px;
+    }
+
+    .popup-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .popup-tier {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .tier-a { background: #E3F2FD; color: #1565C0; }
+    .tier-b { background: #FFF3E0; color: #E65100; }
+    .tier-c { background: #F3E5F5; color: #7B1FA2; }
+
+    .popup-status {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 4px 0;
+    }
+
+    #offseason {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 1000;
+      background: rgba(255,255,255,0.95);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    #offseason h2 { font-size: 48px; margin-bottom: 12px; }
+    #offseason p { color: #666; font-size: 16px; }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      text-align: center;
+      font-size: 18px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h1>sakura mankai tracker</h1>
+    <div id="stats"></div>
+    <div id="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="満開">満開</button>
+      <button class="filter-btn" data-filter="咲き始め">咲き始め</button>
+      <button class="filter-btn" data-filter="つぼみ">つぼみ</button>
+      <button class="filter-btn" data-filter="A">A層</button>
+      <button class="filter-btn" data-filter="B">B層</button>
+    </div>
+  </div>
+  <div id="map"></div>
+  <div id="loading">Loading data...</div>
+  <div id="offseason">
+    <h2>sakura</h2>
+    <p>sakura season (3月-5月) is over.</p>
+    <p>See you next spring!</p>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Google Sheet published CSV URL — replace SHEET_ID with your actual sheet ID
+    const SHEET_ID = '1Y72gResgcAmd0aIcL5FyOWmimIWD0wNi1V-4DbZ4sBk';
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+
+    const STATUS_COLORS = {
+      '満開': '#D81B60',
+      '咲き始め': '#E91E63',
+      '5分咲き': '#EC407A',
+      '7分咲き': '#F06292',
+      'つぼみ': '#66BB6A',
+      '散り始め': '#BDBDBD',
+      '青葉': '#43A047',
+    };
+
+    const STATUS_SIZES = {
+      '満開': 12,
+      '7分咲き': 10,
+      '5分咲き': 10,
+      '咲き始め': 8,
+      'つぼみ': 6,
+      '散り始め': 6,
+      '青葉': 6,
+    };
+
+    const TIER_OPACITY = { 'A': 1.0, 'B': 0.85, 'C': 0.5 };
+
+    // Init map centered on Japan
+    const map = L.map('map').setView([36.5, 137.5], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18,
+    }).addTo(map);
+
+    let allMarkers = [];
+    let allData = [];
+
+    function parseCSV(text) {
+      const lines = text.split('\n');
+      const headers = parseCSVLine(lines[0]);
+      return lines.slice(1).filter(l => l.trim()).map(line => {
+        const values = parseCSVLine(line);
+        const obj = {};
+        headers.forEach((h, i) => obj[h.replace(/"/g, '')] = (values[i] || '').replace(/"/g, ''));
+        return obj;
+      });
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
+    function extractStatus(text) {
+      // Remove emoji prefix
+      return text.replace(/[^\u3000-\u9FFF\u4E00-\u9FAFa-zA-Z0-9ぁ-んァ-ヶ]/g, '').trim();
+    }
+
+    function extractTier(text) {
+      if (text.includes('気象庁')) return 'A';
+      if (text.includes('実測')) return 'B';
+      if (text.includes('推定')) return 'C';
+      return 'C';
+    }
+
+    function createMarker(row) {
+      const lat = parseFloat(row['緯度']);
+      const lng = parseFloat(row['経度']);
+      if (isNaN(lat) || isNaN(lng) || row['緯度'] === '--') return null;
+
+      const status = extractStatus(row['状態'] || '');
+      const tier = extractTier(row['データ層'] || '');
+      const color = STATUS_COLORS[status] || '#999';
+      const size = STATUS_SIZES[status] || 6;
+      const opacity = TIER_OPACITY[tier] || 0.5;
+
+      const tierLabels = { A: '気象庁公式', B: 'Walker+実測', C: 'Walker+推定' };
+      const tierClass = `tier-${tier.toLowerCase()}`;
+
+      const marker = L.circleMarker([lat, lng], {
+        radius: size,
+        fillColor: color,
+        color: '#fff',
+        weight: 1.5,
+        opacity: 1,
+        fillOpacity: opacity,
+      });
+
+      marker.bindPopup(`
+        <span class="popup-tier ${tierClass}">${tierLabels[tier] || tier}</span>
+        <div class="popup-title">${row['地点/景点'] || ''}</div>
+        <div class="popup-status" style="color:${color}">${row['状態'] || ''}</div>
+        <div>${row['地域'] || ''}</div>
+        ${row['観測日'] !== '--' ? `<div>観測日: ${row['観測日']}</div>` : ''}
+        ${row['平年日/見頃'] !== '--' ? `<div>平年/見頃: ${row['平年日/見頃']}</div>` : ''}
+        ${row['タグ'] ? `<div style="font-size:11px;color:#888;margin-top:4px">${row['タグ']}</div>` : ''}
+        ${row['備考'] ? `<div style="font-size:11px;color:#888">${row['備考']}</div>` : ''}
+      `);
+
+      marker._data = { status, tier };
+      return marker;
+    }
+
+    function updateStats() {
+      const visible = allMarkers.filter(m => map.hasLayer(m));
+      const counts = {};
+      visible.forEach(m => {
+        const s = m._data.status;
+        counts[s] = (counts[s] || 0) + 1;
+      });
+
+      const statsEl = document.getElementById('stats');
+      const badges = [
+        { key: '満開', cls: 'stat-mankai' },
+        { key: '咲き始め', cls: 'stat-sakihajime' },
+        { key: 'つぼみ', cls: 'stat-tsubomi' },
+      ];
+
+      statsEl.innerHTML = badges
+        .filter(b => counts[b.key])
+        .map(b => `<span class="stat-badge ${b.cls}">${b.key}: ${counts[b.key]}</span>`)
+        .join('') +
+        `<span class="stat-badge stat-other">表示中: ${visible.length}</span>`;
+    }
+
+    function applyFilter(filter) {
+      allMarkers.forEach(m => {
+        const { status, tier } = m._data;
+        let show = false;
+        if (filter === 'all') show = true;
+        else if (filter === 'A' || filter === 'B' || filter === 'C') show = tier === filter;
+        else show = status === filter;
+
+        if (show) m.addTo(map);
+        else map.removeLayer(m);
+      });
+      updateStats();
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilter(btn.dataset.filter);
+      });
+    });
+
+    // Load data
+    fetch(CSV_URL)
+      .then(r => r.text())
+      .then(csv => {
+        document.getElementById('loading').style.display = 'none';
+
+        // Skip first row (title row) — actual headers are row 2
+        const lines = csv.split('\n');
+        const dataCSV = lines.slice(1).join('\n');
+        const rows = parseCSV(dataCSV);
+
+        if (rows.length === 0) {
+          document.getElementById('offseason').style.display = 'block';
+          return;
+        }
+
+        rows.forEach(row => {
+          const marker = createMarker(row);
+          if (marker) {
+            marker.addTo(map);
+            allMarkers.push(marker);
+          }
+        });
+
+        updateStats();
+      })
+      .catch(err => {
+        document.getElementById('loading').textContent = 'Failed to load data';
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
