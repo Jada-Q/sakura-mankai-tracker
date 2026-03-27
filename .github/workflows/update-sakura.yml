@@ -9,6 +9,8 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     # Season guard is handled inside src/index.ts (isInSeason checks JST month).
     # The workflow always runs, but the script exits immediately off-season.
     # This avoids GitHub Actions expression quirks with date formatting.
